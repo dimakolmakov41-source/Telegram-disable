@@ -15,6 +15,7 @@ import android.widget.Toast
 class MainActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
     private var selectedMinutes = 15
+    private var remainingMillis = 15 * 60_000L
     private var endTimeMillis = 0L
     private var running = false
 
@@ -27,6 +28,7 @@ class MainActivity : Activity() {
             if (!running) return
 
             val remaining = endTimeMillis - System.currentTimeMillis()
+            remainingMillis = remaining.coerceAtLeast(0L)
             if (remaining <= 0L) {
                 running = false
                 timerText.text = "00:00"
@@ -100,6 +102,7 @@ class MainActivity : Activity() {
                 setOnClickListener {
                     if (!running) {
                         selectedMinutes = minutes
+                        remainingMillis = minutes * 60_000L
                         timerText.text = String.format("%02d:00", minutes)
                         statusText.text = "Выбрано: $minutes минут"
                     }
@@ -143,14 +146,16 @@ class MainActivity : Activity() {
 
     private fun startPause() {
         if (running) {
+            remainingMillis = (endTimeMillis - System.currentTimeMillis()).coerceAtLeast(0L)
             handler.removeCallbacks(ticker)
             running = false
-            statusText.text = "Пауза остановлена."
+            statusText.text = "Пауза приостановлена."
             startButton.text = "Продолжить паузу"
             return
         }
 
-        endTimeMillis = System.currentTimeMillis() + selectedMinutes * 60_000L
+        if (remainingMillis <= 0L) remainingMillis = selectedMinutes * 60_000L
+        endTimeMillis = System.currentTimeMillis() + remainingMillis
         running = true
         statusText.text = "Идёт пауза. Можно свернуть приложение."
         startButton.text = "Приостановить"
@@ -161,6 +166,7 @@ class MainActivity : Activity() {
     private fun resetPause() {
         handler.removeCallbacks(ticker)
         running = false
+        remainingMillis = selectedMinutes * 60_000L
         timerText.text = String.format("%02d:00", selectedMinutes)
         statusText.text = "Таймер сброшен."
         startButton.text = "Начать паузу"
